@@ -1,6 +1,6 @@
 import React from "react";
 import "./App.css";
-import { legacy_createStore as createStore } from "redux";
+import { legacy_createStore as createStore, combineReducers } from "redux";
 import { Provider, useSelector, useDispatch } from "react-redux";
 
 // 2. store사용 할때 반드시 reducer가 필요
@@ -21,24 +21,55 @@ import { Provider, useSelector, useDispatch } from "react-redux";
 //   return newState;
 // }
 
+// 초기값 설정
+const initialState = {
+  number: 0,
+};
+
+const viewInitialState = {
+  viewCount: 100,
+};
+
+// action-types
+const ADD_NUMBER = "ADD_NUMBER";
+const MINUS_NUMBER = "MINUS_NUMBER";
+const ADD_VIEWCOUNT = "ADD_VIEWCOUNT";
+
 // 2. store사용 할때 반드시 reducer가 필요
-function reducer(state, action) {
-  const newState = { ...state };
+function numberReducer(state = initialState, action) {
   switch (action.type) {
     // dispatch에서 "PLUS"액션을 전달 받았을때, 실행할 코드 작성
-    case "PLUS":
-      newState.number++;
-      return newState;
-    case "MINUS":
-      newState.number === 0 ? (newState.number = 0) : newState.number--;
-      return newState;
+    case ADD_NUMBER:
+      return { ...state, number: state.number + 1 };
+    case MINUS_NUMBER:
+      return {
+        ...state,
+        number: state.number === 0 ? (state.number = 0) : state.number - 1,
+      };
     default:
-      return { number: 0 };
+      return state;
   }
 }
+
+const viewReducer = (state = viewInitialState, action) => {
+  switch (action.type) {
+    case ADD_VIEWCOUNT:
+      return { ...state, viewCount: state.viewCount + 1 };
+    default:
+      return state;
+  }
+};
+
+// 2개 이상의 리듀서를 넘길 때 combineReducers() 사용
+// combineReducers() 사용하면 state값 출력할때 좀 변형 되므로 콘솔찍어서 확인하여 useSelector에 다시 작성
+const rootReducer = combineReducers({
+  num: numberReducer,
+  view: viewReducer,
+});
+
 // 리덕스 사용
 // 1. 제일 먼저 store 생성
-const store = createStore(reducer);
+const store = createStore(rootReducer);
 
 function App() {
   return (
@@ -56,17 +87,16 @@ function App() {
 }
 
 function Left1() {
-  console.log("Left1");
   return (
     <div>
-      <h4>Left1 : </h4>
+      <h4>View Page : </h4>
       <Left2 />
     </div>
   );
 }
 
 function Left2() {
-  console.log("Left2");
+  console.log("Left2 출력");
   return (
     <div>
       <h4>Left2 : </h4>
@@ -78,24 +108,32 @@ function Left2() {
 function Left3() {
   // number값을 화면에 출력할려면 useSelector() 사용
   // useSelector는 함수를 인자로 받음. state을 입력값으로 받고 state값중에 어떤값을 사용할것인지? ex) number써주면 number를 쓰겠다
-  const number = useSelector((state) => state.number);
-  console.log(`Left3 : ${number}`);
+
+  // combineReducers()을 쓰면 state값이 좀 변형되므로 변경해서 사용
+  // const number = useSelector((state) => state.number);
+  // const number = useSelector((state) => console.log(state));
+
+  const number = useSelector(({ num }) => num.number);
+  const viewCount = useSelector(({ view }) => view.viewCount);
+
+  console.log(`Left3 출력 ${number}, ${viewCount}`);
 
   return (
     <div>
       <h4>Left3 : {number}</h4>
+      <h5>View: {viewCount}</h5>
     </div>
   );
 }
 
 function Right1() {
-  const disaptch = useDispatch();
+  const dispatch = useDispatch();
   return (
     <div>
       <h4>Right1</h4>
       <button
         onClick={() => {
-          disaptch({ type: "MINUS" });
+          dispatch({ type: MINUS_NUMBER });
         }}
       >
         -
@@ -106,9 +144,18 @@ function Right1() {
 }
 
 function Right2() {
+  const dispatch = useDispatch();
+
   return (
     <div>
       <h4>Right2</h4>
+      <button
+        onClick={() => {
+          dispatch({ type: ADD_VIEWCOUNT });
+        }}
+      >
+        View +
+      </button>
       <Right3 />
     </div>
   );
@@ -118,13 +165,13 @@ function Right2() {
 // disaptch를 선언하고, + 클릭시 disaptch에 "PLUS"액션 전달
 // disaptch에 액션을 전달하면 reducer가 호출됨
 function Right3() {
-  const disaptch = useDispatch();
+  const dispatch = useDispatch();
   return (
     <div>
       <h4>Right3</h4>
       <button
         onClick={() => {
-          disaptch({ type: "PLUS" });
+          dispatch({ type: ADD_NUMBER });
         }}
       >
         +
